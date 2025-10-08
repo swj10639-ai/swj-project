@@ -10,7 +10,7 @@
 #include <fstream>
 #include <set>
 #include <stack>
-#include <unistd.h> // 添加这一行以包含 sysconf
+#include <unistd.h> 
 
 
 
@@ -30,7 +30,6 @@ void print_memory_usage() {
     long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024;
     long physical_memory_used_kb = resident * page_size_kb;
 
-    // 转换为 Kb (bit)
     long physical_memory_used_kb_to_kb = physical_memory_used_kb * 8;
 
     std::cout << "Physical Memory Used:" << std::endl;
@@ -60,7 +59,6 @@ Instance* parseInstance(const std::string& pathToFile) {
         std::exit(-1);
     }
 
-    //read edges读取边
     while(getline(file, s) && !s.empty()) {
         int from, to, length;
         std::stringstream tmp(s);
@@ -95,7 +93,7 @@ Instance* parseInstance(const std::string& pathToFile) {
     file.close();
 
     return new Instance(g, trains, maxTimeSteps,new context);//执行
-}//解析地图，构建instance实例
+}
 
 
 
@@ -113,6 +111,7 @@ int main(int argc, char *argv[]) {
 
 
     return 0;
+
 
 
 
