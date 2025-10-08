@@ -16,15 +16,14 @@ Instance::Instance(Graph graph, std::vector<Train> trains, uint32_t maxTimeSteps
 
     int start_Makespan=0;
     for (size_t train = 0; train < trains.size(); train++) {
-        //trainPaths[train] = graph.A_star(trains[train].start.stopEdge,   // 用A*获取了每辆列车的路径
-                                        //trains[train].stops.back().stopEdge,maxTimeSteps);//初始_Constraints为空
-        trainPaths[train] = graph.search(trains[train].start.stopEdge,   // 用A*获取了每辆列车的路径
-                                         trains[train].stops.back().stopEdge);//初始_Constraints为空
+        //trainPaths[train] = graph.A_star(trains[train].start.stopEdge,  
+                                        //trains[train].stops.back().stopEdge,maxTimeSteps);
+        trainPaths[train] = graph.search(trains[train].start.stopEdge,   
+                                         trains[train].stops.back().stopEdge);
         int pathLength=maxTimeSteps+1;
         for(int path_i=0;path_i<trainPaths[train].size();path_i++) {
             if (trainPaths[train][path_i].size() <pathLength) {
                 pathLength = trainPaths[train][path_i].size();
-                //std::cout << "路径长度为" << pathLength << std::endl;
 
             }
         }
@@ -34,25 +33,25 @@ Instance::Instance(Graph graph, std::vector<Train> trains, uint32_t maxTimeSteps
             for (size_t train = 0; train < trains.size(); train++) {
                 sumOfCost+=(trainMinLength[train]-1);
                 if(trainMinLength[train]-1>start_Makespan){
-                    start_Makespan=trainMinLength[train]-1;//Makespan为为路径长度减1
+                    start_Makespan=trainMinLength[train]-1;
                 }
             }
 
 
 
-            computePathNextEdge();//计算路径中每条边的下一条边
-            computeEdgeTime();//计算路径中每条边的到终边需要多少时间
-            for (Train &train : trains) { // 遍历每个列车对象
-                trainMdd mdd(train.id, train.start.stopEdge, train.stops.back().stopEdge); // 创建 MDD 实例
+            computePathNextEdge();
+            computeEdgeTime();
+            for (Train &train : trains) { 
+                trainMdd mdd(train.id, train.start.stopEdge, train.stops.back().stopEdge);
                 for (const auto& path : trainPaths[train.id]) {
-                    mdd.add_path(path); // 将每条路径添加到 MDD 中
+                    mdd.add_path(path); 
                 }
                 MDDs.push_back(mdd);
 
 
 
             }
-    for (int soc = sumOfCost; soc < maxTimeSteps*trains.size(); ++soc) {      //总迭代soc
+    for (int soc = sumOfCost; soc < maxTimeSteps*trains.size(); ++soc) {      
 
         int extra_cost=soc-sumOfCost;
         int makespan = start_Makespan+1+extra_cost;
@@ -74,7 +73,7 @@ Instance::Instance(Graph graph, std::vector<Train> trains, uint32_t maxTimeSteps
                     const tup &current_state = entry.first;
                     const s_tup &successors = entry.second;
 
-                    const Edge *current_edge = std::get<0>(current_state); // 获取边指针
+                    const Edge *current_edge = std::get<0>(current_state); 
                     mddSet[train.id].insert(current_edge);
 
 
@@ -90,10 +89,9 @@ Instance::Instance(Graph graph, std::vector<Train> trains, uint32_t maxTimeSteps
 
 
             TEG.clear();
-            // 初始化MDD
-            TEG.resize(trains.size()); // 根据列车数量调整第一维大小
+            TEG.resize(trains.size());
             for (size_t train = 0; train < trains.size(); train++) {
-                TEG[train].resize(makespan); // 根据最大时间步数调整第二维大小
+                TEG[train].resize(makespan);
             }
             for (size_t train = 0; train < trains.size(); train++) {
 
@@ -108,7 +106,7 @@ Instance::Instance(Graph graph, std::vector<Train> trains, uint32_t maxTimeSteps
                         if((EdgeTime[train][mddEgge]+time)>(makespan-1))
                             continue;
                         bool isNextEdge = false;
-                        for (int u = 0; u < TEG[train][time-1].size(); ++u) {// 对于当前MDD时间步中的每个边
+                        for (int u = 0; u < TEG[train][time-1].size(); ++u) {
 
                             for (const Edge *reachable: reachableFrom[train][TEG[train][time - 1][u]->id]) {
                                 if (reachable == mddEgge) {
@@ -141,7 +139,7 @@ Instance::Instance(Graph graph, std::vector<Train> trains, uint32_t maxTimeSteps
 
                     for (int v=0;v< TEG[train][time].size();++v) {
                         std::stringstream oVarName;
-                        oVarName << "occupies_" << train << "_" << time << "_" << TEG[train][time][v];  ////要不要加->id
+                        oVarName << "occupies_" << train << "_" << time << "_" << TEG[train][time][v];  
                         occupiedVars[train][time].push_back(
                                 c->bool_const(oVarName.str().c_str()));
 
@@ -154,7 +152,6 @@ Instance::Instance(Graph graph, std::vector<Train> trains, uint32_t maxTimeSteps
 
             z3::expr sum = c->int_val(0);
             for (size_t train = 0; train < trains.size(); train++) {
-                // 遍历时间步
                 for (size_t time = trainMinLength[train]-1; time < makespan; time++) {
 
                     for (size_t edge = 0; edge < TEG[train][time].size(); edge++) {
@@ -219,7 +216,6 @@ Instance::Instance(Graph graph, std::vector<Train> trains, uint32_t maxTimeSteps
             break;
         }
         if (nextMakespan) {
-            //std::cout << "进入下一个makespan"<<std::endl;
 
             continue;
         }
@@ -247,12 +243,12 @@ Instance::Instance(const Instance &otherInstance)
 {}
 
 /*void Instance::computeReachableConstraint(Train &train, int &makespan) {
-    std::vector<EdgeSet> reachableFrom(mddSet[train.id].size());   // 用来存储从每个边可达的边集合
-    for (pathType path : trainPaths[train.id]) {  // 遍历列车的每条路径
-        for (size_t startIndex = 0; startIndex < path.size() - 1; startIndex++) {   // 遍历路径中的每个起始顶点索引
-            size_t endIndex = startIndex+1;   // 计算可达的终止顶点索引
+    std::vector<EdgeSet> reachableFrom(mddSet[train.id].size());  
+    for (pathType path : trainPaths[train.id]) {  
+        for (size_t startIndex = 0; startIndex < path.size() - 1; startIndex++) {  
+            size_t endIndex = startIndex+1;  
             for (size_t pathIndex = startIndex; pathIndex <= endIndex; pathIndex++) {
-                reachableFrom[path[startIndex]->id].insert(path[pathIndex]);    // 将可达的边添加到reachableFrom中
+                reachableFrom[path[startIndex]->id].insert(path[pathIndex]);   
             }
         }
     }
@@ -317,7 +313,7 @@ void Instance::computeReachableConstraint(Train &train, int &makespan) {
 
         }
         if (mutexCurrVars.empty()) {
-            continue; // 跳过本次循环
+            continue; 
         } else{
             //constraints.push_back(atmost(mutexCurrVars, 1));
             //solver.add(atmost(mutexCurrVars,1));
@@ -366,7 +362,7 @@ void Instance::addConstraintsToSolver() {
     //for (expr constraint : constraints)
         //solver.add(constraint);
 
-    /*// 对起始位置的顶点进行约束设置
+    /*
     for (const Train &train : trains) {
         for (int u = 0; u < MDD[train.id][0].size(); ++u)
             if (MDD[train.id][0][u] == train.start.stopEdge) {
@@ -526,7 +522,7 @@ void Instance::computeCollisionConstraint(Train &train, int &makespan) {
     /*std::vector<EdgeSet> reachableFrom(graph.edges.size());
     for (pathType path : trainPaths[train.id]) {
         for (size_t startIndex = 0; startIndex < path.size() - 1; startIndex++) {
-            size_t endIndex = startIndex+1;   // 计算可达的终止顶点索引
+            size_t endIndex = startIndex+1;   
             for (size_t pathIndex = startIndex; pathIndex <= endIndex; pathIndex++) {
                 reachableFrom[path[startIndex]->id].insert(path[pathIndex]);
             }
@@ -568,7 +564,7 @@ void Instance::computeCollisionConstraint(Train &train, int &makespan) {
                                // continue;
                             if((EdgeTime[otherTrain.id][TEG[otherTrain.id][time][m]]+time)>(TEG[otherTrain.id].size()-1))
                                 continue;
-                            if ( TEG[otherTrain.id][time][m]==TEG[train.id][time][u]&&v==0)  {//代表互斥！！！！！！！！
+                            if ( TEG[otherTrain.id][time][m]==TEG[train.id][time][u]&&v==0)  {
                                 /*
                                 std::cout << "occupies_Train1:" << train.id << ",time:" << time
                                           << ",edgeID:" << TEG[train.id][time][u]->id << ":"
@@ -585,7 +581,7 @@ void Instance::computeCollisionConstraint(Train &train, int &makespan) {
 
 
 
-                            if ( TEG[otherTrain.id][time][m]==TEG[train.id][time+1][v])  {//代表互斥！！！！！！！！
+                            if ( TEG[otherTrain.id][time][m]==TEG[train.id][time+1][v])  {
 
 
                                 //solver.add(!occupiedVars[otherTrain.id][time][m]||!occupiedVars[train.id][time+1][v]);
@@ -684,13 +680,11 @@ void Instance::computeCollisionConstraint(Train &train, int &makespan) {
 
 
                                 if ( TEG[otherTrain.id][time+1][n]==TEG[train.id][time][u]||TEG[otherTrain.id][time+1][n]==TEG[train.id][time+1][v])  {
-                                    //std::cout << "进入普通碰撞" << std::endl;
 
                                     otherPathVars2.push_back(!occupiedVars[otherTrain.id][time+1][n]);
 
                                 }
                                 if ( TEG[otherTrain.id][time][m]==TEG[train.id][time+1][v]||TEG[otherTrain.id][time][m]==TEG[train.id][time][u])  {
-                                    //std::cout << "进入普通碰撞" << std::endl;
 
                                     otherPathVars2.push_back(!occupiedVars[otherTrain.id][time][m]);
 
@@ -760,6 +754,7 @@ void Instance::printTrainRoute(int &makespan) {
 
 
 }
+
 
 
 
